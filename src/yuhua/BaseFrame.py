@@ -5,7 +5,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 class BaseFrame:
-    def __init__(self,data,rate=0.95,base_on_which_col=None,asc=None,del_sort_col=True):
+    def __init__(self,data,rate=0.05,base_on_which_col=None,asc=None,del_sort_col=True):
         self.base_on_which_col = base_on_which_col
         self.asc = asc
         self.data = pd.DataFrame(data)
@@ -18,6 +18,8 @@ class BaseFrame:
             if self.del_sort_col:
                 del self.data[self.base_on_which_col]
         train, test = train_test_split( self.data, test_size=self.rate, shuffle=False)
+
+        
         return train, test
     
     def kflod_validation_seq(self,k,train_and_test):
@@ -28,9 +30,16 @@ class BaseFrame:
         
         s = 0.0
         max_iter = 0
+
+        print "training and testing ..."
         for i in range(k):
-            # print "Doing",0,i+1,"..."
-            s += train_and_test(pd.concat(arr[:i+1]).copy(), test.copy())
+            
+            train_tmp = pd.concat(arr[:i+1]).copy()
+            test_tmp = test.copy()
+
+            print "Doing",0,i+1," train_len=%s test_len=%s" % (len(train_tmp), len(test_tmp))
+
+            s += train_and_test(train_tmp, test_tmp)
             max_iter += 1
         
         return s / max_iter
@@ -38,6 +47,10 @@ class BaseFrame:
     def split_validation(self,train_and_test):
         train, test = self.sampling()
         train_and_test(train, test)
+
+
+
+        
 
 
 # tat = BaseFrame(train_df, 0.95,'context_timestamp', True)
