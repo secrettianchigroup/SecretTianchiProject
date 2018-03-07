@@ -4,24 +4,24 @@ import pandas as pd
 start_date = '2018-09-18'
 
 
-def getColUvByDate(df, start_date, time_col, col, gap):
+def getColUvByDate(df, start_date, time_col, col, gap, ext_cond=True):
 	'''
 Parameters
 ----------
 df:
-	input data
+  input data
 
 start_date:
-	e.g.: '2018-09-18'
+  e.g.: '2018-09-18'
 
 time_col:
-	e.g.: 'date'
+  e.g.: 'date'
 
 col:
-	e.g.: 'item_id'
+  e.g.: 'item_id'
 
 gap:
-	rollback days, e.g.: 2
+  rollback days, e.g.: 2
 
 Returns
 ----------
@@ -40,7 +40,7 @@ time , uv
 	    # d2 is peekback day
 	    d2 = d1 - timedelta(days=gap)
 	    
-	    days_df = df[(df[time_col] <= d1.strftime(F)) & (df[time_col] >= d2.strftime(F))]
+	    days_df = df[(df[time_col] <= d1.strftime(F)) & (df[time_col] >= d2.strftime(F)) & (ext_cond)]
 	    cond_today_uv = (days_df[time_col] == d1.strftime(F)) & (days_df[col].duplicated() == False)
 	    spec_uv = len(days_df[cond_today_uv])
 	    out[d1.strftime(F)] = spec_uv
@@ -49,3 +49,4 @@ time , uv
 	r_df = pd.Series(out).reset_index()
 	r_df.columns = ['date', 'uv']
 	return r_df
+
