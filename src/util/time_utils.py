@@ -6,27 +6,27 @@ start_date = '2018-09-18'
 
 def getColUvByDate(df, start_date, time_col, col, gap, ext_cond=True):
 	'''
-Parameters
-----------
-df:
-  input data
+	Parameters
+	----------
+	df:
+	  input data
 
-start_date:
-  e.g.: '2018-09-18'
+	start_date:
+	  e.g.: '2018-09-18'
 
-time_col:
-  e.g.: 'date'
+	time_col:
+	  e.g.: 'date'
 
-col:
-  e.g.: 'item_id'
+	col:
+	  e.g.: 'item_id'
 
-gap:
-  rollback days, e.g.: 2
+	gap:
+	  rollback days, e.g.: 2
 
-Returns
-----------
-DataFrame with two columns: 
-time , uv
+	Returns
+	----------
+	DataFrame with two columns: 
+	time , uv
 	'''
 	out = {}
 	F = '%Y-%m-%d'
