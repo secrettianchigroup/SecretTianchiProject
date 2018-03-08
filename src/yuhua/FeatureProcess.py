@@ -2,7 +2,7 @@
 
 import numpy as np 
 import pandas as pd 
-from ffm import FFMData
+# from ffm import FFMData
 import pickle
 import os
 
@@ -91,24 +91,25 @@ class FeatureProcess:
 
         # return pd.DataFrame(data_map)
 
-    def toFFMData(self, df):
+    def toFFMData(self, df, fpath):
         self.fit(df)
-        X, y = [], []
-        target = self.target
+        fp = open(fpath, "wb+")
         print "toFFMData ..."
         for _, row in df.iterrows():
-            feature_tuple = []
+
+            fp.write(str(row[self.target]))
+            fp.write(" ")
             for cat in self.categorical:
                 if pd.notnull(row[cat]):
                     feature = '{}={}'.format(cat, row[cat])
-                    feature_tuple.append((self.field_index[cat], self.feature_index[feature], 1))
+                    fp.write("%s:%s:%s " % (self.field_index[cat], self.feature_index[feature], 1))
             for num in self.numerical:
                 if pd.notnull(row[num]):
-                    feature_tuple.append((self.field_index[num], self.feature_index[num], row[num]))
+                    fp.write("%s:%s:%s " % (self.field_index[num], self.feature_index[num], row[num]))
             
-            X.append(feature_tuple)
-            y.append(row[self.target])
-        return X, y
+
+            fp.write("\n")
+        fp.close()
         
     def cacheRun(self, func, df):
         import md5

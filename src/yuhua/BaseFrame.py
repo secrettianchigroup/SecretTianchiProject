@@ -17,33 +17,44 @@ class BaseFrame:
             self.data = self.data.sort_values(by=self.base_on_which_col,ascending=self.asc)
             if self.del_sort_col:
                 del self.data[self.base_on_which_col]
-        train, test = train_test_split( self.data, test_size=self.rate, shuffle=False)
+        train, valid = train_test_split( self.data, test_size=self.rate, shuffle=False)
 
         
-        return train, test
+        return train, valid
     
-    def kflod_validation_seq(self,k,train_and_test):
+    def kflod_validation_seq(self,k,train_and_test,cut=None):
         if k <= 2:
             raise Exception("k必须>=2")
-        train, test = self.sampling()
+        train, valid = self.sampling()
         arr = np.array_split(train, k)
         
-        s = 0.0
+        s_train_lls = 0.0
+        s_test_lls = 0.0
+
         max_iter = 0
 
         print "training and testing ..."
         for i in range(k):
-            
+            if cut != None and i >= cut:
+                break
             train_tmp = pd.concat(arr[:i+1]).copy()
-            test_tmp = test.copy()
+            if i+1 == k:
+                print "avg logloss train = %s, test = %s\n"%(s_train_lls/max_iter, s_test_lls/max_iter)
+                print "last round using validset as testset"
+                test_tmp = valid.copy()
+            else:
+                test_tmp = arr[i+1].copy()
+
 
             print "Doing",0,i+1," train_len=%s test_len=%s" % (len(train_tmp), len(test_tmp))
 
-            s += train_and_test(train_tmp, test_tmp)
+            train_lls, test_lls = train_and_test(train_tmp, test_tmp)
+
+            s_train_lls += train_lls
+            s_test_lls += test_lls
+            print "logloss train = %s, test = %s\n"%(train_lls, test_lls)
             max_iter += 1
         
-        return s / max_iter
-    
     def split_validation(self,train_and_test):
         train, test = self.sampling()
         train_and_test(train, test)
