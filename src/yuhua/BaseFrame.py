@@ -72,8 +72,8 @@ class BaseFrame:
             if d2 not in dates.index and d2 == dt:
                 continue
 
-            print("%s to %s is training set, %s is test set, start training ... " % \
-                (d0.strftime(F), d1.strftime(F), d2.strftime(F)))
+            print("%s to %s is training set, %s is test set, %s is valid set, start training ... " % \
+                (d0.strftime(F), d1.strftime(F), d2.strftime(F), dt.strftime(F)))
 
             train_df = df[(df[dateCol] >= d0.strftime(F)) & (df[dateCol] <= d1.strftime(F))].copy()
             test_df = df[(df[dateCol] == d2.strftime(F))].copy()
