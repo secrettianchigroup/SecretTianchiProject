@@ -33,26 +33,26 @@ class BaseFrame:
 
         max_iter = 0
 
-        print "training and testing ..."
+        print( "training and testing ...")
         for i in range(k):
             if cut != None and i >= cut:
                 break
             train_tmp = pd.concat(arr[:i+1]).copy()
             if i+1 == k:
-                print "avg logloss train = %s, test = %s\n"%(s_train_lls/max_iter, s_test_lls/max_iter)
-                print "last round using validset as testset"
+                print("avg logloss train = %s, test = %s\n"%(s_train_lls/max_iter, s_test_lls/max_iter))
+                print("last round using validset as testset")
                 test_tmp = valid.copy()
             else:
                 test_tmp = arr[i+1].copy()
 
 
-            print "Doing",0,i+1," train_len=%s test_len=%s" % (len(train_tmp), len(test_tmp))
+            print( "Doing",0,i+1," train_len=%s test_len=%s" % (len(train_tmp), len(test_tmp)))
 
             train_lls, test_lls = train_and_test(train_tmp, test_tmp)
 
             s_train_lls += train_lls
             s_test_lls += test_lls
-            print "logloss train = %s, test = %s\n"%(train_lls, test_lls)
+            print("logloss train = %s, test = %s\n"%(train_lls, test_lls))
             max_iter += 1
         
     def split_validation(self,train_and_test):
@@ -68,5 +68,5 @@ class BaseFrame:
 # ta, ts = tat.sampling()
 # tat.kflod_validation(10,None)
 # help(ta)
-# print ta.iloc[:,0].size
-# print ts.iloc[:,0].size
+# print( ta.iloc[:,0].size)
+# print( ts.iloc[:,0].size)

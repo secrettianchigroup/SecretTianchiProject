@@ -60,7 +60,7 @@ class FeatureProcess:
 
 
     def toOneHot(self, df):
-        print "toOneHot ..."
+        print( "toOneHot ...")
         df = df[self.categorical + self.numerical + [self.target]]
         return pd.get_dummies(df, columns=self.categorical)
         # datas = []
@@ -71,7 +71,7 @@ class FeatureProcess:
         #         cols.append(0)
         #     datas.append(cols)
             
-        # print "toOneHot ..."
+        # print( "toOneHot ...")
         # for i, row in tqdm(df.iterrows(), total=len(df)):
         #     for cat in self.categorical:
         #         name = '{}={}'.format(cat, row[cat])
@@ -94,7 +94,7 @@ class FeatureProcess:
     def toFFMData(self, df, fpath):
         self.fit(df)
         fp = open(fpath, "wb+")
-        print "toFFMData ..."
+        print( "toFFMData ...")
         for _, row in df.iterrows():
 
             fp.write(str(row[self.target]))
@@ -144,10 +144,10 @@ class FeatureProcess:
         if os.path.exists(name):
             fp = open(name, "rb+")
         if fp != None:
-            print "From Cache ..."
+            print( "From Cache ...")
             return pickle.load(fp)
         else:
-            print "Process ..."
+            print( "Process ...")
             fp = open(name, "wb+")
             df = func(df)
             if type(df) == pd.DataFrame:
