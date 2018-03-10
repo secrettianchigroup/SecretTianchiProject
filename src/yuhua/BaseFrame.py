@@ -18,6 +18,7 @@ class BaseFrame:
     划分训练测试集
     frame.split_validation(train_test_callback)
 
+    首先自己自行生成'date'列
     根据日期划分训练测试集, 并且验证kfold过程与验证集是否同增同减
     frame.kfold_by_date('date', train_test_callback)
 
