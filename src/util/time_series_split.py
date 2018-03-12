@@ -7,12 +7,12 @@ from sklearn.utils.validation import _num_samples
 
 class DateTimeSplit:
     """
-    分解训练, 测试, 验证集
+    分解训练, 测试
 
     Usage
     -----------
-    按照时间序列的 kfold训练, 测试, 验证
-    dtsv = DateTimeSplit(dateSeries='date', fmt="%Y-%m%-%d")
+    按照时间序列的 kfold训练, 测试
+    dtsv = DateTimeSplit(dateSeries=df['context_timestamp'], fmt="%Y-%m%-%d")
     dateSeries : 指定时间列
     gap : e.g.: 'days', 目前只支持days
 
@@ -36,15 +36,18 @@ class DateTimeSplit:
             raise ValueError("dateSeries and fmt must specified")
 
         self.D = pd.DataFrame(dateSeries.apply(lambda x: self._fromtimestamp(x, fmt)))
-        print('build df done')
         self.D.columns = ['DATE_COL']
         self.fmt = fmt
+        self.n_split = len(self.D.groupby('DATE_COL').count())
 
     def _fromtimestamp(self, x, fmt):
         d = datetime.fromtimestamp(x)
         return d.strftime(fmt)
 
-    def split(self, X, y):
+    def get_n_splits(self, X, y, groups=None):
+        return self.n_split - 1
+
+    def split(self, X, y, groups=None):
         F = self.fmt 
         D = self.D         
 
@@ -61,10 +64,11 @@ class DateTimeSplit:
 
             # test set
             d2 = d1 + timedelta(days=1)
-            if d2 not in dates.index and d2 == dt:
-                break
 
             train_indices = D[(D['DATE_COL'] >= d0.strftime(F)) & (D['DATE_COL'] <= d1.strftime(F))].index.values
             test_indices = D[D['DATE_COL'] == d2.strftime(F)].index.values
 
             yield np.array(train_indices), np.array(test_indices)
+
+            if d2 == dt:
+                break
