@@ -42,7 +42,7 @@ class FeatureProcess:
 
     def balance_pos_neg_sample(self, df, factor = [1,10]):
         factor = float(factor[1]) / float(factor[0])
-        print factor, int(len(df.loc[df[self.target] > 0])*factor)
+        print(factor, int(len(df.loc[df[self.target] > 0])*factor))
         df = df.loc[df[self.target] == 1].append(df.loc[df[self.target] == 0].sample(n=int(len(df.loc[df[self.target] == 1])*factor), random_state=333)).sample(frac=1,random_state=666)
         return df
 
