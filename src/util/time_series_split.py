@@ -5,6 +5,23 @@ import pandas as pd
 from sklearn.utils import indexable
 from sklearn.utils.validation import _num_samples
 
+class DateTimeSplit2:
+
+    def __init__(self, dataSeries, gap):
+        self.D = dataSeries 
+        self.gap = gap
+
+    def get_n_splits(self, X, y, groups=None):
+        return 1
+
+    def split(self, X, y, groups=None):
+        # X, y = indexable(X, y)
+        train_indices = self.D[self.D['day']<self.gap].index.values
+        test_indices  = self.D[self.D['day']==self.gap].index.values
+        yield np.array(train_indices), np.array(test_indices)
+        return
+
+
 class DateTimeSplit:
     """
     分解训练, 测试
