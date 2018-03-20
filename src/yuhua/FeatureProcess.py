@@ -36,7 +36,7 @@ class FeatureProcess:
     def mov2pos(self, df):
         for num in self.numerical:
             if df[num].min() < 0:
-                df[num] += df[num].min()
+                df[num] -= df[num].min()
 
         return df
 
