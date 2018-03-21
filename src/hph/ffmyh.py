@@ -2,7 +2,8 @@
 import os
 import FeatureProcess
 from sklearn.metrics import log_loss
-#reload(FeatureProcess)
+
+
 class FFM:
     def __init__(self, categorical, numerical, target, listype,
         reg_param = 0.00002,

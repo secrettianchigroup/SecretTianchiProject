@@ -1,8 +1,94 @@
 from datetime import datetime, timedelta
 import pandas as pd
 from sklearn import preprocessing
+import numpy as np
 
-start_date = '2018-09-18'
+
+def setTradeRateByDate(tmp, cols):
+    add_count = False
+    # window = 2
+
+    exp = "exp_d_"
+    cnt = "cnt_d_"
+
+    #此处应该处理按天为梯度的数据
+    for k in cols:
+        exp_k = exp+k
+        cnt_k = cnt+k
+
+        for day in range(0, 7):
+
+            cal_day = max(day - 1, 0)
+            set_day = day
+
+            print("column %s trade_rate cal_day %s set to day %s" % (k, cal_day, set_day))
+            
+            #start_d - day(不含day)用于计算，结果赋值到day上
+            days1 = np.logical_and(tmp.day.values <= cal_day, tmp.day.values > (cal_day - 7))
+            print('days1 unique:', tmp[days1]["day"].unique())
+            # days1 = (tmp.day.values == cal_day)
+            # days1 = np.logical_and(tmp.day.values >= 0, tmp.day.values <= 5)
+            days2 = (tmp.day.values == set_day)
+            ret = calcTVTransform(tmp, k, 'is_trade', days1, days2, smoothing = 250, mean0 = 0.05)
+                
+            tmp.loc[tmp.day.values == day, exp_k] = ret["exp"]
+            tmp.loc[tmp.day.values == day, cnt_k] = ret["cnt"]
+
+
+def calcTVTransform(df, key, key_y, filter_src, filter_dst, smoothing = 10, mean0=None):
+    """
+    calcTVTransform(total_df, 'item_city_id', 'is_trade', (total_df['day'] == 5), (total_df['day'] == 6))
+    """
+    if mean0 is None:
+        #计算目标的平均值做平缓用
+        mean0 = df.ix[filter_src, key_y].mean()
+        print("mean0:", mean0)
+    
+    #取出key的所有值
+    df['_key1'] = df[key].astype('category').values.codes
+    
+    
+    #取出用于计算的源（后面聚合掉就没有顺序可言了）
+    df_key1_y = df.ix[filter_src, ['_key1', key_y]]
+    
+    #根据key的取值去聚合key_y的总数和总和，用户计算rate和count
+    grp1 = df_key1_y.groupby(['_key1'])
+    sum1 = grp1[key_y].aggregate(np.sum)
+    cnt1 = grp1[key_y].aggregate(np.size)
+    
+    vn_sum = 'sum_' + key
+    vn_cnt = 'cnt_' + key
+    
+    #取出dst（带序列）的所有key
+    v_codes = df.ix[filter_dst, '_key1']
+    
+    #得到_sum,_cnt，按dst的序列
+    _sum = sum1[v_codes].values
+    _cnt = cnt1[v_codes].values
+    _cnt[np.isnan(_sum)] = 0    
+    _sum[np.isnan(_sum)] = 0
+    
+    r = {}
+    r['exp'] = (_sum + smoothing * mean0)/(_cnt + smoothing)
+    # r['exp'] = (_sum)/(_cnt)
+    r['cnt'] = _cnt
+    return r
+
+
+def getColTradeRate(df, idCol):
+    rateCol = idCol + '_tr'
+    pvCol = idCol + '_pv'
+    try:
+        del df[rateCol]
+        del df[pvCol]
+    except:
+        pass
+    a = df.groupby([idCol]).agg({'is_trade':'sum'})
+    b = df.groupby([idCol]).agg({'is_trade':'size'})
+    c = a.join(b, lsuffix="_sum", rsuffix="_size")
+    c[rateCol] = c['is_trade_sum'] / c['is_trade_size']
+    c[pvCol] = c['is_trade_size']
+    return df.join(c[[rateCol, pvCol]], on=idCol)
 
 
 def getColDupByDate(df, dateCol, col, gap):
@@ -33,8 +119,6 @@ def getColDupByDate(df, dateCol, col, gap):
     le = preprocessing.LabelEncoder()
     dates = df.groupby(dateCol).count().sort_index(ascending=True)
     start_date = dates.index[0]
-
-
 
     F = '%Y-%m-%d'
     d0 = datetime.strptime(start_date, F)
