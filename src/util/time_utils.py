@@ -29,7 +29,7 @@ def setTradeRateByDate(tmp, cols):
             # days1 = (tmp.day.values == cal_day)
             # days1 = np.logical_and(tmp.day.values >= 0, tmp.day.values <= 5)
             days2 = (tmp.day.values == set_day)
-            ret = calcTVTransform(tmp, k, 'is_trade', days1, days2, smoothing = 250, mean0 = 0.05)
+            ret = calcTVTransform(tmp, k, 'is_trade', days1, days2, smoothing = 200, mean0 = 0.05)
                 
             tmp.loc[tmp.day.values == day, exp_k] = ret["exp"]
             tmp.loc[tmp.day.values == day, cnt_k] = ret["cnt"]
