@@ -16,19 +16,18 @@ def setTradeRateByDate(tmp, cols):
         exp_k = exp+k
         cnt_k = cnt+k
 
-        for day in range(0, 7):
+        for day in range(0, 8):
 
             cal_day = max(day - 1, 0)
             set_day = day
 
-            print("column %s trade_rate cal_day %s set to day %s" % (k, cal_day, set_day))
             
             #start_d - day(不含day)用于计算，结果赋值到day上
             days1 = np.logical_and(tmp.day.values <= cal_day, tmp.day.values > (cal_day - 7))
-            print('days1 unique:', tmp[days1]["day"].unique())
             # days1 = (tmp.day.values == cal_day)
             # days1 = np.logical_and(tmp.day.values >= 0, tmp.day.values <= 5)
             days2 = (tmp.day.values == set_day)
+            print("column %s trade_rate cal_day %s set to day %s" % (k, tmp[days1]["day"].unique(), set_day))
             ret = calcTVTransform(tmp, k, 'is_trade', days1, days2, smoothing = 200, mean0 = 0.05)
                 
             tmp.loc[tmp.day.values == day, exp_k] = ret["exp"]
