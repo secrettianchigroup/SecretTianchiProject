@@ -7,11 +7,13 @@ import pickle
 import os
 import numpy as np
 import pandas as pd
+import copy
 
 class FeatureProcess:
     def __init__(self, target=None, categorical=None, numerical=None, listype=None):
         self.field_index = {}
         self.feature_index = {}
+        self.ff_index = {}
         self.target = target
         self.categorical = categorical
         self.numerical = numerical
@@ -61,6 +63,8 @@ class FeatureProcess:
             self.field_index[col] = field_index
             field_index += 1
 
+
+
             #收集categorical的Onehot特征
             vals = df[col].unique()
             for val in vals:
@@ -69,7 +73,11 @@ class FeatureProcess:
                 name = '{}={}'.format(col, self.fixVals(val))
                 if self.feature_index.get(name, -1) == -1:
                     self.feature_index[name] = feature_code
+
+                    self.ff_index[feature_code] = self.field_index[col]
                     feature_code += 1
+
+            
 
         #收集listype的field
         for col in self.listype:
@@ -86,6 +94,8 @@ class FeatureProcess:
                     name = '{}={}'.format(col, self.fixVals(item))
                     if self.feature_index.get(name, -1) == -1:
                         self.feature_index[name] = feature_code
+
+                        self.ff_index[feature_code] = self.field_index[col]
                         feature_code += 1
 
         for field_index, col in enumerate(self.numerical, start=len(self.categorical)):
@@ -139,6 +149,9 @@ class FeatureProcess:
         ret[self.categorical] = tmp
         return ret
         
+    def copyFFFIndexs(self):
+        return copy.deepcopy(self.ff_index), copy.deepcopy(self.field_index), copy.deepcopy(self.feature_index)
+
 
     def fixVals(self, val):
         if type(val) != str:
