@@ -9,6 +9,60 @@ import numpy as np
 import pandas as pd
 import copy
 
+
+class filter_on_cols:
+    def __init__(self, target, categorical, numerical, listype):
+        self.target = target
+        self.categorical = categorical
+        self.numerical = numerical
+        self.listype = listype
+        
+
+    def fit(self,df):
+        self.df_col = copy.deepcopy(df.columns)
+    
+    def __getitem__(self,i):
+        if i == "target":
+            return self.get_raw_target_col()
+        elif i == "categorical":
+            return self.get_raw_categorical_cols()
+        elif i == "numerical":
+            return self.get_raw_numerical_cols()
+        elif i == "listype":
+            return self.get_raw_listype_cols()
+        elif i == "onehot_categorical":
+            return self.get_onehoted_cols("categorical")
+        elif i == "onehot_listype":
+            return self.get_onehoted_cols("listype")
+        else:
+            print "FUCK you"
+
+    def get_raw_target_col(self):
+        return copy.deepcopy(self.target)
+    def get_raw_categorical_cols(self):
+        return copy.deepcopy(self.categorical)
+    
+    def get_raw_numerical_cols(self):
+        return copy.deepcopy(self.numerical)
+    def get_raw_listype_cols(self):
+        return copy.deepcopy(self.listype)
+    
+    def get_onehoted_cols(self, t):
+        if t == "listype":
+            org_cols = self.listype
+        
+        if t == "categorical":
+            org_cols = self.categorical
+            
+        ret = []
+        for org_col in org_cols:
+            for cur_col in list(self.df_col):
+                if cur_col.find("*ONEHOT*_") != -1 and cur_col.find(org_col) != -1:
+                    ret.append(cur_col)
+        
+        return ret
+
+
 class FeatureProcess:
     def __init__(self, target=None, categorical=None, numerical=None, listype=None):
         self.field_index = {}
@@ -18,6 +72,7 @@ class FeatureProcess:
         self.categorical = categorical
         self.numerical = numerical
         self.listype = listype
+        self.layering_org_keys = {}
 
     def norm(self, df):
         #对数值列归一化
@@ -48,6 +103,17 @@ class FeatureProcess:
         df = df.loc[df[self.target] == 1].append(df.loc[df[self.target] == 0].sample(n=int(len(df.loc[df[self.target] == 1])*factor), random_state=333)).sample(frac=1,random_state=666)
         return df
 
+    def addLayeringOrgKeys(self, layering_org_keys):
+        self.layering_org_keys[layering_org_keys] = 1
+
+    def matchLayeringKeys(self, k):
+        orgk = k.split("LAY*_")
+        if len(orgk) != 2:
+            return False
+        orgk = orgk[1]
+        if orgk in self.layering_org_keys:
+            return orgk
+
 
     def fit(self, df):
         '''
@@ -57,6 +123,8 @@ class FeatureProcess:
         numerical: numerical columns, list
         '''
         #收集categorical的field
+
+        print("fiting ... ")
         feature_code = 0
         field_index = 0
         for col in self.categorical:
@@ -98,13 +166,39 @@ class FeatureProcess:
                         self.ff_index[feature_code] = self.field_index[col]
                         feature_code += 1
 
-        for field_index, col in enumerate(self.numerical, start=len(self.categorical)):
-            self.field_index[col] = field_index
-            self.feature_index[col] = feature_code
+        for col in self.numerical:
+            fd_col = col
+            fea_col = col
+            orgkey = self.matchLayeringKeys(col)
+            
+
+            if orgkey:
+                if orgkey not in self.field_index:
+                    self.field_index[orgkey] = field_index
+                    field_index += 1
+                
+                self.field_index[fd_col] = self.field_index[orgkey]
+
+            else:
+                self.field_index[fd_col] = field_index
+                field_index += 1
+
+            self.feature_index[fea_col] = feature_code
             feature_code += 1
 
+            self.ff_index[feature_code] = self.field_index[fd_col]
+        
+        # print "fields"
+        # for k,v in self.field_index.items():
+        #     print k,v
+
+        # print "\nfeatures"
         # for k,v in self.feature_index.items():
         #     print k,v
+        
+        print("Total fields = %s" % len(self.field_index))
+        print("Total features = %s" % len(self.feature_index))
+        # print self.ff_index
 
         return self
 
@@ -112,8 +206,13 @@ class FeatureProcess:
     # def toOneHotList(self, df):
 
     def toOneHotList(self, df):
+
         print( "toOneHotList ...")
         # listype = ['item_category_list']
+
+        if len(self.listype) == 0:
+            print "Nothing at all"
+            return df
         
         muniq = {}
         
@@ -129,7 +228,7 @@ class FeatureProcess:
                 for item in arr:
                     new_col = "*ONEHOT*_"+str(col)+"="+str(item)
                     if muniq.get(new_col) == None:
-                        muniq[new_col] = [0] * total
+                        muniq[new_col] = [np.nan] * total
                     muniq[new_col][idx] = 1
             idx += 1
                     
@@ -137,6 +236,7 @@ class FeatureProcess:
         muniq = pd.DataFrame(muniq)
         
     	df[list(muniq.columns)] = muniq[list(muniq.columns)]
+        df = df.to_sparse()
         return df
 
     def toOneHot(self, df):
@@ -145,8 +245,9 @@ class FeatureProcess:
         for c in self.categorical:
         	new_prefixs.append("*ONEHOT*_"+c)
         tmp = df[self.categorical]
-        ret = pd.get_dummies(df, prefix=new_prefixs, prefix_sep="=", columns=self.categorical)
+        ret = pd.get_dummies(df, prefix=new_prefixs, prefix_sep="=", columns=self.categorical).replace(0,np.nan)
         ret[self.categorical] = tmp
+        ret = ret.to_sparse()
         return ret
         
     def copyFFFIndexs(self):
@@ -160,11 +261,12 @@ class FeatureProcess:
         else:
             return val
     def toFFMData(self, df, fpath, mod=0):
-        self.fit(df)
+        #绝对不能在此处fit，fit的时候必须用全集数据
+        # self.fit(df)
         fp = open(fpath, "wb+")
         print("Max field index:%s"%max(self.field_index.values()))
         print("Max feature index:%s"%max(self.feature_index.values()))
-        print( "toFFMData ...", fpath)
+        print("NEW! toFFMData ... %s" % fpath)
         for _, row in df.iterrows():
 
             fp.write(str(row[self.target]))
@@ -181,16 +283,21 @@ class FeatureProcess:
                 arr = row[col]
                 if arr == None:
                     continue
+
+                m = {}
                 for item in arr:
                     feature = '{}={}'.format(col, self.fixVals(item))
+                    if feature in m:
+                        continue
                     fp.write("%s:%s:%s " % (self.field_index[col], self.feature_index[feature], 1))
+                    m[feature] = 1
 
 
             for num in self.numerical:
                 val = row[num]
                 if pd.notnull(row[num]):
-                    if val < 0 or val > 1:
-                        val = mod
+                    if val <= 0 or val > 1:
+                        continue
                     fp.write("%s:%s:%s " % (self.field_index[num], self.feature_index[num], val))
             
 
