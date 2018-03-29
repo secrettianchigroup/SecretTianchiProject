@@ -97,6 +97,13 @@ class FeatureProcess:
 
         return df
 
+    def mov2mean(self, df):
+        for num in self.numerical:
+            if df[num].min() < 0:
+                df[df[num] < 0] = df[num].mean()
+
+        return df
+
     def balance_pos_neg_sample(self, df, factor = [1,10]):
         factor = float(factor[1]) / float(factor[0])
         print(factor, int(len(df.loc[df[self.target] > 0])*factor))
@@ -188,13 +195,13 @@ class FeatureProcess:
 
             self.ff_index[feature_code] = self.field_index[fd_col]
         
-        # print "fields"
-        # for k,v in self.field_index.items():
-        #     print k,v
+        print "fields"
+        for k,v in self.field_index.items():
+            print k,v
 
-        # print "\nfeatures"
-        # for k,v in self.feature_index.items():
-        #     print k,v
+        print "\nfeatures"
+        for k,v in self.feature_index.items():
+            print k,v
         
         print("Total fields = %s" % len(self.field_index))
         print("Total features = %s" % len(self.feature_index))
