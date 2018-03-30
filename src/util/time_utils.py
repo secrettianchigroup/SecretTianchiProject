@@ -115,7 +115,8 @@ def generateColDupByDay(df, cols, gaps, dateCol='day', verbose=True):
     tmp = df.copy()
     for col in cols:
         for gap in gaps:
-            print('setting col %s_dup_g_%s' % (col, gap))
+            if verbose:
+                print('setting col %s_dup_g_%s' % (col, gap))
             setColDupByDay(tmp, col, gap, dateCol)
     return tmp
 
@@ -134,14 +135,10 @@ def setColDupByDay(df, col, gap, dateCol='day'):
         # 获取 今天以来, 今天 这两种索引
         index_alldays = np.logical_and(df[dateCol].values <= today, df[dateCol].values > (today - gap - 1))
         index_today = (df[dateCol].values == today)
-        # if today == 6:
-        #     continue
-
-        # return index_alldays, index_today
 
         if len(df[index_today]) == 0 or len(df[index_alldays]) == 0:
             break
-            
+
         # 计算今天以来col的重复状态, 并且把今天的状态拿出来set到新列
         df.loc[index_today, newCol] = df.loc[index_alldays, col].duplicated()
 

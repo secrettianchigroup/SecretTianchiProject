@@ -8,7 +8,7 @@ importlib.reload(bs)
 
 
 
-def setTradeRateByDate(tmp, cols, colSmoothing=None, verbose=True):
+def generateTradeRateByDate(tmp, cols, colSmoothing=None, verbose=True):
     add_count = False
 
     total_days = 8
