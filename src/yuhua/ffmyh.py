@@ -6,7 +6,7 @@ import subprocess
 import time
 from itertools import combinations
 import collections
-reload(FeatureProcess)
+# reload(FeatureProcess)
 from prettytable import PrettyTable
 
 # x = PrettyTable(["City name", "Area", "Population", "Annual Rainfall"])
@@ -30,28 +30,20 @@ from prettytable import PrettyTable
 
 
 class FFM:
-    def __init__(self, categorical, numerical, target, listype,
+    def __init__(self, processor,
         reg_param = 0.00002,
         k = 4,
         iter_max = 15,
         learing_rate = 0.2,
         threads = 1,
         auto_stop = False,
-        quiet = False,
-        no_norm = False):
+        quiet = False):
 
 
         self.trainer = "./ffm-train"
         self.predictor = "./ffm-predict"
         self.dir = "./ffm/"
-        self.processor = FeatureProcess.FeatureProcess(   target=target, 
-
-                            categorical=categorical, 
-
-                            numerical=numerical,
-
-                            listype=listype
-                                )
+        self.processor = processor
         self.param = [self.trainer]
         self.param.append("-l")
         self.param.append(reg_param)
@@ -72,22 +64,26 @@ class FFM:
             self.param.append("--auto-stop")
         if quiet:
             self.param.append("--quiet")
-        if no_norm:
-            self.param.append("--no-norm")
+        #nerver ever use the fucking ffm-norm
+        # self.param.append("--no-norm")
 
         self.quiet = quiet
-        self.categorical = categorical
-        self.numerical = numerical
-        self.target = target
-        self.listype = listype
+        self.categorical = processor.categorical
+        self.numerical = processor.numerical
+        self.target = processor.target
+        self.listype = processor.listype
+
+        self.tr = self.categorical+self.numerical+[self.target]+self.listype
+        self.ts = self.categorical+self.numerical+self.listype
 
     
     def fit(self, train_df, validation_df=None):
-
+        train_df = train_df[self.tr]
+        if type(validation_df) != type(None):
+            validation_df = validation_df[self.tr]
         validation_param = ""
         is_cached, train_name = self.processor.readyCache(self.processor.toFFMData, train_df, path=self.dir, subfix=".txt")
 
-        self.processor.fit(train_df)
         #获取训练集的所有
         self.ff_index, self.field_index, self.feature_index = self.processor.copyFFFIndexs()
 
@@ -114,7 +110,8 @@ class FFM:
                 print(validation_name)
             self.validation_name = validation_name
 
-            self.param.append("-p").append(self.dir + validation_name)
+            self.param.append("-p")
+            self.param.append(self.dir + validation_name)
 
         self.model_name = train_name + ".model"
         self.train_name = train_name
@@ -264,6 +261,7 @@ class FFM:
         __print_dict(neg_sum_weight_fea, "负向交叉特征")
 
     def predict(self, test_df):
+        test_df = test_df[self.ts]
 
         is_cached, test_name = self.processor.readyCache(self.processor.toFFMData, test_df, path=self.dir, subfix=".txt")
         if not is_cached :
