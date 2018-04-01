@@ -76,14 +76,7 @@ class FFM:
         self.tr = self.categorical+self.numerical+[self.target]+self.listype
         self.ts = self.categorical+self.numerical+self.listype
 
-    
-    def fit(self, train_df, validation_df=None):
-        train_df = train_df[self.tr]
-        if type(validation_df) != type(None):
-            validation_df = validation_df[self.tr]
-        validation_param = ""
-        is_cached, train_name = self.processor.readyCache(self.processor.toFFMData, train_df, path=self.dir, subfix=".txt")
-
+    def fit_schema(self):
         #获取训练集的所有
         self.ff_index, self.field_index, self.feature_index = self.processor.copyFFFIndexs()
 
@@ -95,6 +88,17 @@ class FFM:
         self.rev_field_index = {}
         for k,v in self.field_index.items():
             self.rev_field_index[v] = k
+
+    
+    def fit(self, train_df, validation_df=None):
+        train_df = train_df[self.tr]
+        if type(validation_df) != type(None):
+            validation_df = validation_df[self.tr]
+        validation_param = ""
+        is_cached, train_name = self.processor.readyCache(self.processor.toFFMData, train_df, path=self.dir, subfix=".txt")
+
+        #获取到训练集的schema
+        self.fit_schema()
 
 
         if not is_cached :
@@ -144,7 +148,7 @@ class FFM:
     def predict_proba(self, test_df):
         return self.predict(test_df)
 
-    def parse_model(self, index_path, model_path, verbose=False):
+    def parse_model(self, index_path, model_path, feaures_message=False):
 
         fp = open(index_path, "wb+")
         
@@ -179,6 +183,9 @@ class FFM:
 
         output = os.popen(cmd).read()
 
+        pos_sum_weight_sfd = collections.defaultdict(float)
+        neg_sum_weight_sfd = collections.defaultdict(float)
+
         pos_sum_weight_fd = collections.defaultdict(float)
         neg_sum_weight_fd = collections.defaultdict(float)
 
@@ -212,9 +219,16 @@ class FFM:
             fd = "%s + %s" % (f1,f2)
             fea = "%s:%s + %s:%s" % (f1, j1, f2, j2)
 
+
             if weight >= 0:
+                pos_sum_weight_sfd[f1] += weight
+                pos_sum_weight_sfd[f2] += weight
+
                 pos_sum_weight_fd[fd] += weight
             else:
+                neg_sum_weight_sfd[f1] += weight
+                neg_sum_weight_sfd[f2] += weight
+
                 neg_sum_weight_fd[fd] += weight
 
             if weight >= 0:
@@ -224,7 +238,7 @@ class FFM:
 
         def __print_dict(d, typ):
             dd = sum(d.values())
-            z = sorted(d.items(), key=lambda x:x[1])
+            z = sorted(d.items(), key=lambda x:abs(x[1]), reverse=True)
 
             x = PrettyTable([typ, "value", "proportion"])
 
@@ -246,19 +260,29 @@ class FFM:
         #     print k,v 
         # print "\n\n"
 
+
+        __print_dict(pos_sum_weight_sfd, "正向field")
+
+        print "\n-----------------------分割-----------------------\n"
+
+        __print_dict(neg_sum_weight_sfd, "负向field")
+
+        print "\n-----------------------分割-----------------------\n"
+
         __print_dict(pos_sum_weight_fd, "正向组合")
 
         print "\n-----------------------分割-----------------------\n"
 
         __print_dict(neg_sum_weight_fd, "负向组合")
 
-        print "\n-----------------------分割-----------------------\n"
+        if feaures_message:
+            print "\n-----------------------分割-----------------------\n"
 
-        __print_dict(pos_sum_weight_fea, "正向交叉特征")
+            __print_dict(pos_sum_weight_fea, "正向交叉特征")
 
-        print "\n-----------------------分割-----------------------\n"
+            print "\n-----------------------分割-----------------------\n"
 
-        __print_dict(neg_sum_weight_fea, "负向交叉特征")
+            __print_dict(neg_sum_weight_fea, "负向交叉特征")
 
     def predict(self, test_df):
         test_df = test_df[self.ts]

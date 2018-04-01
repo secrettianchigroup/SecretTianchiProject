@@ -8,6 +8,7 @@ import os
 import numpy as np
 import pandas as pd
 import copy
+import collections
 
 
 class filter_on_cols:
@@ -68,6 +69,7 @@ class FeatureProcess:
         self.field_index = {}
         self.feature_index = {}
         self.ff_index = {}
+        self.rff_index = collections.defaultdict(set)
         self.target = target
         self.categorical = categorical
         self.numerical = numerical
@@ -100,7 +102,7 @@ class FeatureProcess:
     def mov2mean(self, df):
         for num in self.numerical:
             if df[num].min() < 0:
-                df[df[num] < 0] = df[num].mean()
+                df.loc[df[num] < 0, num] = df[num].mean()
 
         return df
 
@@ -166,6 +168,8 @@ class FeatureProcess:
                 if arr == None:
                     continue
                 for item in arr:
+                    if str(item).strip() == "-1":
+                        continue
                     name = '{}={}'.format(col, self.fixVals(item))
                     if self.feature_index.get(name, -1) == -1:
                         self.feature_index[name] = feature_code
@@ -191,17 +195,22 @@ class FeatureProcess:
                 field_index += 1
 
             self.feature_index[fea_col] = feature_code
-            feature_code += 1
 
             self.ff_index[feature_code] = self.field_index[fd_col]
+
+            feature_code += 1
+
+
+        for k,v in self.ff_index.items():
+            self.rff_index[v].add(k)
         
         print "fields"
         for k,v in self.field_index.items():
-            print k,v
+            print k,v,len(self.rff_index[v])
 
         print "\nfeatures"
         for k,v in self.feature_index.items():
-            print k,v
+            print k,v,self.ff_index[v]
         
         print("Total fields = %s" % len(self.field_index))
         print("Total features = %s" % len(self.feature_index))
@@ -233,6 +242,8 @@ class FeatureProcess:
                 if arr == None:
                     continue
                 for item in arr:
+                    if str(item).strip() == "-1":
+                        continue
                     new_col = "*ONEHOT*_"+str(col)+"="+str(item)
                     if muniq.get(new_col) == None:
                         muniq[new_col] = [np.nan] * total
@@ -293,6 +304,8 @@ class FeatureProcess:
 
                 m = {}
                 for item in arr:
+                    if str(item).strip() == "-1":
+                        continue
                     feature = '{}={}'.format(col, self.fixVals(item))
                     if feature in m:
                         continue
