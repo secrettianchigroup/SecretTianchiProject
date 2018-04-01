@@ -28,13 +28,14 @@ def setTradeRateByDate(tmp, cols):
             # days1 = np.logical_and(tmp.day.values >= 0, tmp.day.values <= 5)
             days2 = (tmp.day.values == set_day)
             print("column %s trade_rate cal_day %s set to day %s" % (k, tmp[days1]["day"].unique(), set_day))
-            ret = calcTVTransform(tmp, k, 'is_trade', days1, days2, smoothing = 200, mean0 = 0.05)
+            # ret = calcTVTransform(tmp, k, 'is_trade', days1, days2, smoothing = 200, mean0 = 0.05)
+            ret = calcTVTransform(tmp, k, 'is_trade', days1, days2, smoothing=10)
                 
             tmp.loc[tmp.day.values == day, exp_k] = ret["exp"]
             tmp.loc[tmp.day.values == day, cnt_k] = ret["cnt"]
 
 
-def calcTVTransform(df, key, key_y, filter_src, filter_dst, smoothing = 10, mean0=None):
+def calcTVTransform(df, key, key_y, filter_src, filter_dst, smoothing = -1, mean0=None):
     """
     calcTVTransform(total_df, 'item_city_id', 'is_trade', (total_df['day'] == 5), (total_df['day'] == 6))
     """
@@ -68,8 +69,10 @@ def calcTVTransform(df, key, key_y, filter_src, filter_dst, smoothing = 10, mean
     _sum[np.isnan(_sum)] = 0
     
     r = {}
-    r['exp'] = (_sum + smoothing * mean0)/(_cnt + smoothing)
-    # r['exp'] = (_sum)/(_cnt)
+    if smoothing > 0:
+        r['exp'] = (_sum + smoothing * mean0)/(_cnt + smoothing)
+    else:
+        r['exp'] = (_sum)/(_cnt)
     r['cnt'] = _cnt
     return r
 
@@ -88,6 +91,63 @@ def getColTradeRate(df, idCol):
     c[rateCol] = c['is_trade_sum'] / c['is_trade_size']
     c[pvCol] = c['is_trade_size']
     return df.join(c[[rateCol, pvCol]], on=idCol)
+
+
+def generateColDupByDay(df, cols, gaps, dateCol='day', verbose=True):
+    """
+    生成新特征, 根据日期, 把特定列的去重状态排列出来
+
+    Parameters
+    ----------------
+    df : data
+    col : 指定列
+    gap : 相隔多少天
+    dateCol : 日期列, 'day', 以自然数代表天数
+
+    offline_df = generateColDupByDay(offline_df, ['item_id', 'shop_id'], [1,2,3])
+    print(offline_df.item_id_dup_g_3)
+    print(offline_df.shop_id_dup_g_1)
+
+    Returns
+    ----------------
+    new DataFrame with new features
+    """   
+    tmp = df.copy()
+    for col in cols:
+        for gap in gaps:
+            if verbose:
+                print('setting col %s_dup_g_%s' % (col, gap))
+            setColDupByDay(tmp, col, gap, dateCol)
+    return tmp
+
+def setColDupByDay(df, col, gap, dateCol='day'):
+
+    # 新特征列
+    newCol = col + '_dup_gg_' + str(gap)  
+    
+    if newCol in df:
+        return df
+    
+    days = len(df[dateCol].unique())
+
+    for today in range(0, days+1):
+ 
+        # 获取 今天以来, 今天 这两种索引
+        index_alldays = np.logical_and(df[dateCol].values <= today, df[dateCol].values > (today - gap - 1))
+        index_today = (df[dateCol].values == today)
+
+        if len(df[index_today]) == 0 or len(df[index_alldays]) == 0:
+            break
+
+        # 计算今天以来col的重复状态, 并且把今天的状态拿出来set到新列
+        df.loc[index_today, newCol] = df.loc[index_alldays, col].duplicated()
+
+
+    # 把两种状态转换成0, 1
+    le = preprocessing.LabelEncoder()
+    df[newCol] = le.fit_transform(df[newCol].fillna('nodata').astype('str'))
+
+    return df
 
 
 def getColDupByDate(df, dateCol, col, gap):
@@ -110,7 +170,7 @@ def getColDupByDate(df, dateCol, col, gap):
     """
     # 新特征列
     newCol = col + '_dup_g_' + str(gap)  
-    
+    print('setting new col : %s' % newCol)
     if newCol in df:
         return df
     

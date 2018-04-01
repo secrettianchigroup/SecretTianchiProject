@@ -72,7 +72,6 @@ class FFM:
             print(output)
         
         
-
     def predict_proba(self, test_df):
         return self.predict(test_df)
         
