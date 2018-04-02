@@ -74,8 +74,11 @@ class FFM:
         self.listype = processor.listype
 
         self.tr = self.categorical+self.numerical+[self.target]+self.listype
-        self.ts = self.categorical+self.numerical+self.listype
+        self.ts = self.tr
 
+    def set_exists_model(self, model_name):
+    	self.model_name = model_name
+    	
     def fit_schema(self):
         #获取训练集的所有
         self.ff_index, self.field_index, self.feature_index = self.processor.copyFFFIndexs()
