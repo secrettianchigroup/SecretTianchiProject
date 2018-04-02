@@ -8,7 +8,7 @@ importlib.reload(bs)
 
 
 
-def generateTradeRateByDate(tmp, cols, colSmoothing=None, verbose=True):
+def generateTradeRateByDate(tmp, cols, gap = 7, colSmoothing=None, verbose=True):
     add_count = False
 
     total_days = 8
@@ -35,7 +35,7 @@ def generateTradeRateByDate(tmp, cols, colSmoothing=None, verbose=True):
 
             
             #start_d - day(不含day)用于计算，结果赋值到day上
-            days1 = np.logical_and(tmp.day.values <= cal_day, tmp.day.values > (cal_day - 7))
+            days1 = np.logical_and(tmp.day.values <= cal_day, tmp.day.values > (cal_day - gap))
             days2 = (tmp.day.values == set_day)
             ret = calcTVTransform(tmp, k, 'is_trade', days1, days2, smoothing=10)
              
