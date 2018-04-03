@@ -4,3 +4,5 @@ round1_ijcai_18_train_20180301.txt
 src/hph/.ipynb_checkpoints/
 src/hph/submits/
 *.pyc
+src/yuhua/.ipynb_checkpoints/simple_xgb_pure-checkpoint.ipynb
+src/yuhua/randomforest_res.csv

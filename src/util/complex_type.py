@@ -5,6 +5,29 @@ import numpy as np
 
 
 class set_review_cnt:
+    """
+    
+
+    Usage:
+    -----------------
+    f = set_review_cnt(key1, key2, countdown_mapping)
+    df['newCol'] = df.apply(f, axis=1)
+
+
+    Example:
+    -----------------
+    cnt_user_item_review = raw_df[["user_id", "item_id", "instance_id"]].groupby(["user_id", "item_id"])['instance_id'].count().to_dict() 
+    cnt_user_cate_review = raw_df[["user_id", "item_category_1", "instance_id"]].groupby(["user_id", "item_category_1"])['instance_id'].count().to_dict()  
+
+    f1 = set_review_cnt("user_id", "item_id", cnt_user_item_review)
+    f2 = set_review_cnt("user_id", "item_category_1", cnt_user_cate_review)
+
+    tmp = raw_df.sort_values(by="context_timestamp")
+    tmp["item_review_cnt"] = tmp[["user_id", "item_id"]].apply(f1, axis=1)
+    tmp["cate_review_cnt"] = tmp[["user_id", "item_category_1"]].apply(f2, axis=1)
+    raw_df = tmp.sort_index()
+    """
+
     def __init__(self, key1, key2, cnt_k1_k2_review):
         self.key1 = key1
         self.key2 = key2
