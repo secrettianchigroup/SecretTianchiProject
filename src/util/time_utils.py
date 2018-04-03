@@ -4,7 +4,7 @@ from sklearn import preprocessing
 import numpy as np
 
 
-def setTradeRateByDate(tmp, cols):
+def setTradeRateByDate(tmp, cols, smoothing=200):
     add_count = False
     # window = 2
 
@@ -28,8 +28,8 @@ def setTradeRateByDate(tmp, cols):
             # days1 = np.logical_and(tmp.day.values >= 0, tmp.day.values <= 5)
             days2 = (tmp.day.values == set_day)
             print("column %s trade_rate cal_day %s set to day %s" % (k, tmp[days1]["day"].unique(), set_day))
-            # ret = calcTVTransform(tmp, k, 'is_trade', days1, days2, smoothing = 200, mean0 = 0.05)
-            ret = calcTVTransform(tmp, k, 'is_trade', days1, days2, smoothing=10)
+            ret = calcTVTransform(tmp, k, 'is_trade', days1, days2, smoothing = smoothing, mean0 = 0.05)
+            # ret = calcTVTransform(tmp, k, 'is_trade', days1, days2, smoothing=10)
                 
             tmp.loc[tmp.day.values == day, exp_k] = ret["exp"]
             tmp.loc[tmp.day.values == day, cnt_k] = ret["cnt"]

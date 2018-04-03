@@ -164,8 +164,8 @@ def process_complex_types(dfX, icl_map, ipl_map):
     
     print( "generating item_category_1, item_category_2 ...")
 #     dfX['item_category_list01'] = dfX['item_category_list'].map(lambda x:x[0] if x != None and len(x) > 0 else None)
-    dfX['item_category_1'] = dfX['item_category_list'].map(lambda x:x[1] if x != None and len(x) > 1 else 0)
-    dfX['item_category_2'] = dfX['item_category_list'].map(lambda x:x[2] if x != None and len(x) > 2 else 0)
+    dfX['item_category_1'] = dfX['item_category_list'].map(lambda x:x[1] if x != None and len(x) > 1 else '0')
+    dfX['item_category_2'] = dfX['item_category_list'].map(lambda x:x[2] if x != None and len(x) > 2 else '0')
     
     return dfX
 
