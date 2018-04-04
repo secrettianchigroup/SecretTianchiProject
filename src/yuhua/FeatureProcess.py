@@ -132,10 +132,16 @@ class FeatureProcess:
         numerical: numerical columns, list
         '''
         #收集categorical的field
+        df = df.copy().replace(-1, np.nan)
 
         print("fiting ... ")
         feature_code = 0
         field_index = 0
+        self.field_index = {}
+        self.feature_index = {}
+        self.ff_index = {}
+        self.rff_index = collections.defaultdict(set)
+        
         for col in self.categorical:
             self.field_index[col] = field_index
             field_index += 1
@@ -206,7 +212,7 @@ class FeatureProcess:
         
         print "fields"
         for k,v in self.field_index.items():
-            print k,v,len(self.rff_index[v])
+            print k,v, "features_cnt:",len(self.rff_index[v])
 
         print "\nfeatures"
         for k,v in self.feature_index.items():
@@ -279,6 +285,9 @@ class FeatureProcess:
         else:
             return val
     def toFFMData(self, df, fpath, mod=0):
+
+        df = df.copy().replace(-1, np.nan)
+        
         #绝对不能在此处fit，fit的时候必须用全集数据
         # self.fit(df)
         fp = open(fpath, "wb+")
