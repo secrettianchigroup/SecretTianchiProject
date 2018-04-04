@@ -36,7 +36,7 @@ class filter_on_cols:
         elif i == "onehot_listype":
             return self.get_onehoted_cols("listype")
         else:
-            print "FUCK you"
+            print( "FUCK you")
 
     def get_raw_target_col(self):
         return copy.deepcopy(self.target)
@@ -210,17 +210,17 @@ class FeatureProcess:
         for k,v in self.ff_index.items():
             self.rff_index[v].add(k)
         
-        print "fields"
+        print( "fields")
         for k,v in self.field_index.items():
-            print k,v, "features_cnt:",len(self.rff_index[v])
+            print (k,v, "features_cnt:",len(self.rff_index[v]))
 
-        print "\nfeatures"
+        print( "\nfeatures")
         for k,v in self.feature_index.items():
-            print k,v,self.ff_index[v]
+            print( k,v,self.ff_index[v])
         
         print("Total fields = %s" % len(self.field_index))
         print("Total features = %s" % len(self.feature_index))
-        # print self.ff_index
+        # print( self.ff_index)
 
         return self
 
@@ -233,7 +233,7 @@ class FeatureProcess:
         # listype = ['item_category_list']
 
         if len(self.listype) == 0:
-            print "Nothing at all"
+            print( "Nothing at all")
             return df
         
         muniq = {}
@@ -259,7 +259,7 @@ class FeatureProcess:
                         
         muniq = pd.DataFrame(muniq)
         
-    	df[list(muniq.columns)] = muniq[list(muniq.columns)]
+        df[list(muniq.columns)] = muniq[list(muniq.columns)]
         df = df.to_sparse()
         return df
 
@@ -267,7 +267,7 @@ class FeatureProcess:
         print( "toOneHot ...")
         new_prefixs = []
         for c in self.categorical:
-        	new_prefixs.append("*ONEHOT*_"+c)
+            new_prefixs.append("*ONEHOT*_"+c)
         tmp = df[self.categorical]
         ret = pd.get_dummies(df, prefix=new_prefixs, prefix_sep="=", columns=self.categorical).replace(0,np.nan)
         ret[self.categorical] = tmp

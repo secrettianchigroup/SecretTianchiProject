@@ -5,6 +5,29 @@ import numpy as np
 
 
 class set_review_cnt:
+    """
+    
+
+    Usage:
+    -----------------
+    f = set_review_cnt(key1, key2, countdown_mapping)
+    df['newCol'] = df.apply(f, axis=1)
+
+
+    Example:
+    -----------------
+    cnt_user_item_review = raw_df[["user_id", "item_id", "instance_id"]].groupby(["user_id", "item_id"])['instance_id'].count().to_dict() 
+    cnt_user_cate_review = raw_df[["user_id", "item_category_1", "instance_id"]].groupby(["user_id", "item_category_1"])['instance_id'].count().to_dict()  
+
+    f1 = set_review_cnt("user_id", "item_id", cnt_user_item_review)
+    f2 = set_review_cnt("user_id", "item_category_1", cnt_user_cate_review)
+
+    tmp = raw_df.sort_values(by="context_timestamp")
+    tmp["item_review_cnt"] = tmp[["user_id", "item_id"]].apply(f1, axis=1)
+    tmp["cate_review_cnt"] = tmp[["user_id", "item_category_1"]].apply(f2, axis=1)
+    raw_df = tmp.sort_index()
+    """
+
     def __init__(self, key1, key2, cnt_k1_k2_review):
         self.key1 = key1
         self.key2 = key2
@@ -87,6 +110,26 @@ def get_ipl_map(df):
         m[k] = v / ll
     return m
 
+def cos_sim(a,b):
+    if type(a) == type(b) == list:
+        am,bm = {},{}
+        for i in a:
+            am[i] = 1
+        for i in b:
+            bm[i] = 1
+        
+        a = am
+        b = bm
+    
+    up = 0.
+    down = 0.
+    for k in a:
+        if k in b:
+            up += (a[k]*b[k])
+    down = np.sqrt(len(a))*np.sqrt(len(b))
+    
+    return up/down
+
 def process_complex_types(dfX, icl_map, ipl_map):
     def filter_unless_cate(arr):
         ret = []
@@ -121,42 +164,78 @@ def process_complex_types(dfX, icl_map, ipl_map):
         line = line.split("|")
         item_category_list = unique_list(line[0].split(";"))
         item_property_list = unique_list(line[1].split(";"))
-        
-        whole_combines = {}
-        for cate in item_category_list:
-            tmp = cate+":"+"-1"
-            whole_combines[tmp] = 1
-            for prop in item_property_list:
-                tmp = cate+":"+prop
-                whole_combines[tmp] = 2
+        #删掉-1
+        if "-1" in item_property_list:
+            del item_property_list[item_property_list.index("-1")]
         
         
-                
-        predict_category_property = unique_list(line[2].split(";"))
-        product = 0.
-        item_vec_len = np.sqrt(len(whole_combines))
-        user_vec_len = np.sqrt(len(predict_category_property))
-        for item in predict_category_property:
-            #x1 == 1
-            #y1 == 1
-            #x1*y1 == 1
-            #x2 == 0
-            #y2 == 1
-            #x2*y2 == 0
-            #所以product由x决定 += 1/0
-            product += whole_combines.get(item, 0)
+        #抽出预测的cate_list和prop_list
+        line[2] = line[2].split(";")
         
-        return product/(item_vec_len*user_vec_len)
- 
+        pitem_category_list_prop = {}
+        pitem_category_list = []
+        pitem_property_list = []
+        for l in line[2]:
+            l = l.split(":")
+            
+            if l[0] != -1:
+                pitem_category_list.append(l[0])
+            if len(l) >= 2 and l[1] != -1:
+                l[1] = l[1].split(",")
+                pitem_property_list.append(l[1])
+                pitem_category_list_prop[l[0]] = l[1]
+            if len(l) >= 3:
+                print( "FUCK?")
+
+        
+        #计算预测的cate相似度+prop相似度
+        csim = cos_sim(item_category_list, pitem_category_list)
+        psim = 0.
+        if len(pitem_property_list) > 0:
+            for i in pitem_property_list:
+                psim += cos_sim(item_property_list, i)
+            psim /= len(pitem_property_list)
+        
+        #统计category命中率
+        hit_cate_rate = 0.
+        hit_cate_sim = 1.
+        if len(item_category_list) > 1:
+            if len(item_category_list) == 2 and item_category_list[1] in pitem_category_list_prop:
+                hit_cate_rate += 1
+                hit_cate_sim *= (1+cos_sim(pitem_category_list_prop[item_category_list[1]], item_property_list))
+            if len(item_category_list) == 3 and item_category_list[2] in pitem_category_list_prop:
+                hit_cate_rate += 1
+                hit_cate_sim *= (1+cos_sim(pitem_category_list_prop[item_category_list[2]], item_property_list))
+            
+            hit_cate_rate /= (len(item_category_list) - 1)
+            
+            
+        
+        
+        predict_richness = len(set(pitem_category_list))
+        item_property_richness = len(set(item_property_list))
+        return [csim, psim, predict_richness, item_property_richness, hit_cate_rate, hit_cate_sim]
+            
+        
+            
+        
+        
+        
     print("processing predict_category_property ...")
 #     dfX['predict_category_property'] = dfX['predict_category_property'].str.split(';').map(lambda x: [i.split(":")[0] for i in x]).map(filter_unless_cate)
     
-    dfX['predict_richness'] =  dfX['predict_category_property'].map(lambda x: 0 if len(x.strip()) == 0 else len(x.split(";")))
-    dfX['predict_category_property'] = dfX['item_category_list']+"|"+dfX['item_property_list']+"|"+dfX['predict_category_property']
-    dfX['predict_category_property'] = dfX['predict_category_property'].map(inner_product_recall_items)
+    dfX['tmp'] = dfX['item_category_list']+"|"+dfX['item_property_list']+"|"+dfX['predict_category_property']
+    dfX['tmp'] = dfX['tmp'].map(inner_product_recall_items)
+    
+    dfX['category_sim'] = dfX['tmp'].map(lambda x: x[0])
+    dfX['property_sim'] = dfX['tmp'].map(lambda x: x[1])
+    dfX['predict_richness'] =  dfX['tmp'].map(lambda x: x[2])
+    dfX['item_property_richness'] = dfX['tmp'].map(lambda x: x[3])
+    dfX['hit_cate_cnt'] = dfX['tmp'].map(lambda x: x[4])
+    dfX['hit_cate_sim'] = dfX['tmp'].map(lambda x: x[5])
+    dfX.drop("tmp", axis=1)
     
     print("processing item_property_list ...")
-    dfX['item_property_richness'] = dfX['item_property_list'].map(lambda x: 0 if len(x.strip()) == 0 else len(x.split(";")))
     dfX['item_property_list'] = dfX['item_property_list'].str.split(';').map(filter_unless_prop)
     
     print("processing item_category_list ...")
@@ -168,4 +247,3 @@ def process_complex_types(dfX, icl_map, ipl_map):
     dfX['item_category_2'] = dfX['item_category_list'].map(lambda x:x[2] if x != None and len(x) > 2 else '0')
     
     return dfX
-
