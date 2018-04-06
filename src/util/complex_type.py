@@ -233,7 +233,7 @@ def process_complex_types(dfX, icl_map, ipl_map):
     dfX['item_property_richness'] = dfX['tmp'].map(lambda x: x[3])
     dfX['hit_cate_cnt'] = dfX['tmp'].map(lambda x: x[4])
     dfX['hit_cate_sim'] = dfX['tmp'].map(lambda x: x[5])
-    dfX.drop("tmp", axis=1)
+    #dfX = dfX.drop("tmp", axis=1)
     
     print("processing item_property_list ...")
     dfX['item_property_list'] = dfX['item_property_list'].str.split(';').map(filter_unless_prop)
@@ -242,7 +242,7 @@ def process_complex_types(dfX, icl_map, ipl_map):
     dfX['item_category_list'] = dfX['item_category_list'].str.split(';')
     
     print( "generating item_category_1, item_category_2 ...")
-#     dfX['item_category_list01'] = dfX['item_category_list'].map(lambda x:x[0] if x != None and len(x) > 0 else None)
+    #dfX['item_category_len'] = dfX['item_category_list'].map(lambda x:len(x))
     dfX['item_category_1'] = dfX['item_category_list'].map(lambda x:x[1] if x != None and len(x) > 1 else '0')
     dfX['item_category_2'] = dfX['item_category_list'].map(lambda x:x[2] if x != None and len(x) > 2 else '0')
     
