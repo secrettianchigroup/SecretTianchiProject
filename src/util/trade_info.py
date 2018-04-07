@@ -1,10 +1,10 @@
-import sys
-sys.path.append('..')
 from datetime import datetime, timedelta
 import pandas as pd
 from sklearn import preprocessing
 import numpy as np
-import util.bayesian_smoothing as bs
+import bayesian_smoothing as bs
+import importlib
+importlib.reload(bs)
 
 
 
@@ -18,8 +18,8 @@ def generateTradeRateByDate(tmp, cols, gap = 7, colSmoothing=None, verbose=True,
 
     #此处应该处理按天为梯度的数据
     for k in cols:
-        exp_k = exp+k+str(gap)
-        cnt_k = cnt+k+str(gap)
+        exp_k = exp+k
+        cnt_k = cnt+k
         
         alpha, beta = 0, 0
         if colSmoothing and k in colSmoothing:
