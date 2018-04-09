@@ -107,13 +107,12 @@ class BaseFrame:
         else:
             # 分离a,b榜
             X_val_a, X_val_b, y_val_a, y_val_b = train_test_split(X_test, self.y_test, test_size=0.7, shuffle=True, random_state=6)
-            val_a_loss = log_loss(y_val_a, m.predict_proba(X_val_a))
-            val_b_loss = log_loss(y_val_b, m.predict_proba(X_val_b))
-            print('> (%s -> %s) train logloss: %.5f, test logloss: %.5f, a: %.5f, b: %.5f\n' % \
-                  (self.starts, self.ends, \
-                   log_loss(y_train, m.predict_proba(X_train)), \
-                   log_loss(self.y_test, m.predict_proba(X_test)),\
-                  val_a_loss, val_b_loss))
+            train_loss = log_loss(y_train, m.predict_proba(X_train))*100000
+            test_loss  = log_loss(self.y_test, m.predict_proba(X_test))*100000
+            val_a_loss = log_loss(y_val_a, m.predict_proba(X_val_a))*100000
+            val_b_loss = log_loss(y_val_b, m.predict_proba(X_val_b))*100000
+            print('> (%s -> %s) %.0f_%.0f_a%.0f_b%.0f\n' % \
+                  (self.starts, self.ends, train_loss, test_loss, val_a_loss, val_b_loss))
 
         return m, X_train, X_test, y_train, self.y_test
           
