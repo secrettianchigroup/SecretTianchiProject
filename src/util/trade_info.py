@@ -7,6 +7,49 @@ import importlib
 importlib.reload(bs)
 
 
+def getMultiTradeRate(df, cols, target = 'is_trade', gap = 7, colSmoothing=None, verbose=True, glbSmoothing=10, glbMean0=0.5):
+    """
+    按照时间滑动窗口给多维度进行交易率，交易频次进行计算，并返回新列
+
+    Usage:
+    ----------------
+    df['u2i_sz'], df['u2i_sum'], df['u2i_rate'] = getMultiTradeRate(df, ['user_id', 'item_id'], 7)
+
+    """
+    t_df = df[['day', target]+cols].copy()
+
+    prefix = 'nwCol'
+    colSz = prefix+"_sz"
+    colSum = prefix+"_sum"
+    colRate = prefix+"_rate"
+
+    def _getT(row, grp, target, target2, dft):
+        if (target, target2) not in grp:
+            return dft
+        
+        key = tuple([row[i] for i in cols])
+        if key not in grp[(target, target2)]:
+            return dft
+        
+        return grp[(target, target2)][key]
+
+    for day in range(0, 8):
+        # 日期分区索引
+        prev_day = (t_df.day.values <= max(day-1, 0)) & (t_df.day.values > day - gap)
+        set_day = (t_df.day.values == day)
+
+        # 聚合缓存数据
+        grp = t_df[prev_day].groupby(cols).agg({target: ['size', 'sum']}).to_dict()
+
+        t_df.loc[set_day, colSz] = t_df.loc[set_day, cols].apply(lambda x: _getT(x, grp, target, 'size', 0.0), axis=1)
+        t_df.loc[set_day, colSum] = t_df.loc[set_day, cols].apply(lambda x: _getT(x, grp, target, 'sum', 0.0), axis=1)
+        t_df.loc[set_day, colRate] = t_df.loc[set_day, :].apply(lambda x: (x[colSum]+glbSmoothing*glbMean0)/(x[colSz]+glbSmoothing), axis=1)
+
+        if verbose:
+            print('data before day %d is setted, with period %d, data size %d' % (day, gap, sum(set_day == 1)))
+
+    return t_df[colSz], t_df[colSum], t_df[colRate]
+
 
 def generateTradeRateByDate(tmp, cols, gap = 7, colSmoothing=None, verbose=True, glbSmoothing=10, glbMean0=0.5):
     add_count = False
