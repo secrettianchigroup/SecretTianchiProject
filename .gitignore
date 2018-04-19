@@ -6,3 +6,4 @@ src/hph/submits/
 *.pyc
 src/yuhua/.ipynb_checkpoints/simple_xgb_pure-checkpoint.ipynb
 src/yuhua/randomforest_res.csv
+round1_ijcai_18_test_b_20180418.txt
