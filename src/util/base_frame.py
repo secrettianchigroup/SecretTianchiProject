@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from sklearn import preprocessing
 from datetime import datetime
 import os
+import xgboost
 
 def extract_date(x):
     d = datetime.fromtimestamp(x)
@@ -70,7 +71,7 @@ class BaseFrame:
         test_tmp['data_set'] = 'testing'
         self.df = train_tmp.append(test_tmp)
 
-    def fit(self, clf, feat_cols, filename, drop=True, ab_rate=0.7, random_state=2):
+    def fit(self, clf, feat_cols, filename, drop=True, ab_rate=0.7, random_state=2, early_stopping_rounds=100):
         path = 'submits/'+filename+'.csv'
         if os.path.exists(path):
             print('model already exists!')
@@ -82,13 +83,18 @@ class BaseFrame:
         X_train = None 
         X_test = None 
         if drop:
-            X_train = train_df.drop(feat_cols + ['data_set', 'date'], axis=1)
-            X_test = test_df.drop(feat_cols + ['data_set', 'date'], axis=1)
+            X_train = train_df.drop(feat_cols + ['data_set'], axis=1)
+            X_test = test_df.drop(feat_cols + ['data_set'], axis=1)
+            if 'date' in train_df.columns and 'date' in test_df.columns:
+                X_train = X_train.drop(['date'], axis=1)
+                X_test = X_test.drop(['date'], axis=1)        
         else:
             X_train = train_df[feat_cols]
             X_test = test_df[feat_cols]
 
         y_train = train_df[['is_trade']].values.ravel()
+        y_test = self.y_test.values.ravel()
+        print('X_train %s, y_train %s, X_test %s, y_test %s' % (X_train.shape, y_train.shape, X_test.shape, y_test.shape))
 
         # y_test is already exists
         # 训练模型
@@ -96,23 +102,59 @@ class BaseFrame:
         from sklearn.model_selection import train_test_split
 
         print('>', X_train.shape, '\n')
-        m = clf.fit(X_train, y_train)
 
         # 如果移动到线上集, 则输出模型
-        if sum(self.y_test == -1) > 0:
+        if sum(y_test == -1) > 0:
+            m = clf.fit(X_train, y_train)
             result = pd.DataFrame()
             result['instance_id'] = test_df['instance_id']
             result['predicted_score'] = pd.DataFrame(m.predict_proba(X_test))[1].values
-            result.to_csv(path, sep = ' ', header=True, index = False)     
+            result.to_csv(path, sep = ' ', header=True, index = False)
         else:
+            m = clf.fit(X_train, y_train, 
+                eval_set=((X_train, y_train, 'train'), (X_test, y_test, 'test')), 
+                eval_metric='logloss',
+                early_stopping_rounds=early_stopping_rounds)
             # 分离a,b榜
-            X_val_a, X_val_b, y_val_a, y_val_b = train_test_split(X_test, self.y_test, test_size=0.7, shuffle=True, random_state=6)
             train_loss = log_loss(y_train, m.predict_proba(X_train))*100000
-            test_loss  = log_loss(self.y_test, m.predict_proba(X_test))*100000
-            val_a_loss = log_loss(y_val_a, m.predict_proba(X_val_a))*100000
-            val_b_loss = log_loss(y_val_b, m.predict_proba(X_val_b))*100000
-            print('> (%s -> %s) %.0f_%.0f_a%.0f_b%.0f\n' % \
-                  (self.starts, self.ends, train_loss, test_loss, val_a_loss, val_b_loss))
-
-        return m, X_train, X_test, y_train, self.y_test
+            test_loss  = log_loss(y_test, m.predict_proba(X_test))*100000
+            print('> (%s -> %s) %.0f_%.0f %d\n' % \
+                  (self.starts, self.ends, train_loss, clf.best_score*100000, m.best_ntree_limit))
+        return m, X_train, X_test, y_train, y_test
           
+
+    def fitXgb(self, param, feat_cols, filename, drop=True):
+        path = 'submits/'+filename+'.csv'
+        if os.path.exists(path):
+            print('model already exists!')
+            return 
+
+        train_df = self.df[self.df['data_set'] == 'training']
+        test_df = self.df[self.df['data_set'] == 'testing']
+
+        X_train = None 
+        X_test = None 
+        if drop:
+            X_train = train_df.drop(feat_cols + ['data_set'], axis=1, errors='ignore')
+            X_test = test_df.drop(feat_cols + ['data_set'], axis=1, errors='ignore')
+            if 'date' in train_df.columns and 'date' in test_df.columns:
+                X_train = train_df.drop(feat_cols + ['date'], axis=1, errors='ignore')
+                X_test = test_df.drop(feat_cols + ['date'], axis=1, errors='ignore')        
+        else:
+            X_train = train_df[feat_cols]
+            X_test = test_df[feat_cols]
+
+        y_train = train_df[['is_trade']].values.ravel()
+        y_test = self.y_test.values.ravel()
+
+        dtrain = xgboost.DMatrix(data=X_train.values, label=y_train)
+        dtest = xgboost.DMatrix(data=X_test.values, label=y_test)
+
+        watchlist = [(dtrain, 'train'), (dtest, 'test')]
+        progress = dict()
+
+        bst = xgboost.train(param, dtrain, 3000, watchlist, early_stopping_rounds=150, evals_result=progress)
+        bst.save_model('xgbModel_eval')
+        xgb.plot_importance(bst)
+        loglossList = progress['test']['logloss']
+        return loglossList

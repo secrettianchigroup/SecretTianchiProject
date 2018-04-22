@@ -8,6 +8,7 @@ import math
 
 class set_review_cnt:
     """
+
     Usage:
     -----------------
     f = set_review_cnt(key1, key2, countdown_mapping)
@@ -48,6 +49,18 @@ class set_review_cnt:
             self.tmp[k] += 1
             return ret
         
+def use_feautre_review_cnt(df, feature, new_feature):
+    """
+    统计一个用户重复看某个商品的次数+一个用户重复看某类商品的次数
+    """
+
+    cnt_feature_review = df[["user_id", feature, "instance_id"]].groupby(["user_id", feature])['instance_id'].count().to_dict() 
+    f = set_review_cnt("user_id", feature, cnt_feature_review)
+    
+    df = df.sort_values(by="context_timestamp")
+    df[new_feature] = df[["user_id", feature]].apply(f, axis=1)
+    
+    return df.sort_index()
 
 
 #简化list等复杂类型的结构

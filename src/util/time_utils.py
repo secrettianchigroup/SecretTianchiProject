@@ -4,6 +4,34 @@ from sklearn import preprocessing
 import numpy as np
 
 
+def getLastImpressTime(df, cols, last=1):
+    """
+    获取前n次该维度的曝光时间差距
+
+    Usage:
+    -----------
+    df['last_sec_user_shop'] = getLastImpressTime(df, ['user_id', 'shop_id'], 1)
+    """
+    c_cols = cols + ['context_timestamp']
+    train_origin = df
+    train1 = train_origin[c_cols].sort_values(c_cols, ascending=True)
+
+    rnColumn = train1.groupby(cols).rank(method='min')
+    train1['rnn'] = rnColumn['context_timestamp']
+    train1['rnn_pre'] = rnColumn['context_timestamp'] - 1
+
+    train2 = train1.merge(train1, how='left', left_on=cols + ['rnn_pre'], right_on=cols+['rnn'])
+
+    return train2['context_timestamp_x'] - train2['context_timestamp_y']
+
+
+
+
+def getNextImpressTime(df, cols, next=1):
+    return getLastImpressTime(df, cols, -next)
+
+
+
 def setTradeRateByDate(tmp, cols, smoothing=200):
     add_count = False
     # window = 2

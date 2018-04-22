@@ -7,11 +7,15 @@ import importlib
 importlib.reload(bs)
 
 
-def getMultiTradeRate(df, cols, target = 'is_trade', gap = 7, colSmoothing=None, verbose=True, glbSmoothing=10, glbMean0=0.5):
+def getMultiTradeRate(df, cols, gap = 7, target = 'is_trade', colSmoothing=None, verbose=True, glbSmoothing=10, glbMean0=0.5):
     """
     按照时间滑动窗口给多维度进行交易率，交易频次进行计算，并返回新列
 
     Usage:
+    ----------------
+    countSeries, sumSeries, rateSeries = getMultiTradeRate(df, ['a','b'], 7)
+
+    Examples:
     ----------------
     df['u2i_sz'], df['u2i_sum'], df['u2i_rate'] = getMultiTradeRate(df, ['user_id', 'item_id'], 7)
 
@@ -61,8 +65,8 @@ def generateTradeRateByDate(tmp, cols, gap = 7, colSmoothing=None, verbose=True,
 
     #此处应该处理按天为梯度的数据
     for k in cols:
-        exp_k = exp+k
-        cnt_k = cnt+k
+        exp_k = exp+k+'_'+str(gap)
+        cnt_k = cnt+k+'_'+str(gap)
         
         alpha, beta = 0, 0
         if colSmoothing and k in colSmoothing:
