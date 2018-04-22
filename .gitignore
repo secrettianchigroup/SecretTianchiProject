@@ -14,3 +14,8 @@ src/hph/xgbModelFinal
 src/hph/xgbModel1eval
 src/hph/allFeaturen1.csv
 src/yuhua/.ipynb_checkpoints/
+src/util/main_modify_val_modify_concat_add_lightgbm_add_day_eval_final_best.py
+src/util/BrandIDBayesSmooth.py
+src/util/ItemIDBayesSmooth.py
+src/util/shopIDBayesSmooth.py
+src/util/userIDBayesSmooth.py
