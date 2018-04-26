@@ -19,3 +19,8 @@ src/util/BrandIDBayesSmooth.py
 src/util/ItemIDBayesSmooth.py
 src/util/shopIDBayesSmooth.py
 src/util/userIDBayesSmooth.py
+round2_train.txt
+round2_ijcai_18_test_a_20180425.zip
+round2_ijcai_18_test_a_20180425.txt
+[update] round2_ijcai_18_train_20180425.7z
+src/result/20180422_lgb_local_.csv

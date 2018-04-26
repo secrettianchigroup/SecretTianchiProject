@@ -35,21 +35,26 @@ class BaseFrame:
     y_test = None
     ####################
 
-    def __init__(self, offline_df, online_df, days):
+    def __init__(self, offline_df, online_df, days, submit=False):
 
         self.offline_df = offline_df
+        self.offline_df['data_set'] = 'training'
         self.online_df = online_df
+        self.online_df['data_set'] = 'testing'
+        self.submit = submit
         self._gen_total_df(days)
 
     def _gen_total_df(self, days):
+        _TARGET = 'is_trade'
 
         # 线下线上数据统一进行特征处理
-        self.online_df['is_trade'] = -1
+        self.online_df[_TARGET] = -1
         total_df = pd.concat([self.offline_df, self.online_df], axis=0, ignore_index=True)
-        total_df['date'] = total_df['context_timestamp'].apply(lambda x: extract_date(x))
+
+        total_df['date'] = total_df['context_timestamp'].apply(lambda x: datetime.fromtimestamp(x).strftime('%Y-%m-%d'))
         le = preprocessing.LabelEncoder()
         total_df['day'] = le.fit_transform(total_df['date'])
-
+        print(total_df['day'].unique())
         # 获取训练测试的索引, 6全集数据验证, 7为生成上线文件
         starts = list(range(0, days))
         ends = [days]
@@ -58,18 +63,22 @@ class BaseFrame:
         self.starts = starts
         self.ends = ends
 
-        # 把测试索引的label提取
-        self.y_test = total_df.iloc[test_indices]['is_trade']
+        if not self.submit:
+            # 测试
+            self.y_test = total_df.iloc[test_indices]['is_trade']
+            
+            # 把需要训练和测试的数据提取, 并且强制去掉测试集的label列
+            total_df.loc[test_indices, 'is_trade'] = np.nan
 
-        # 把需要训练和测试的数据提取, 并且强制去掉测试集的label列
-        total_df.loc[test_indices, 'is_trade'] = np.nan
-
-        # 得出训练测试必须的数据集 ,并且添加一列data_set作为标记
-        train_tmp = total_df.iloc[train_indices].copy()
-        train_tmp['data_set'] = 'training'
-        test_tmp = total_df.iloc[test_indices].copy()
-        test_tmp['data_set'] = 'testing'
-        self.df = train_tmp.append(test_tmp)
+            train_tmp = total_df.iloc[train_indices].copy()
+            train_tmp['data_set'] = 'training'
+            test_tmp = total_df.iloc[test_indices].copy()
+            test_tmp['data_set'] = 'testing'
+            self.df = train_tmp.append(test_tmp)
+        else:
+            # 提交
+            self.y_test = self.online_df[_TARGET]
+            self.df = total_df
 
     def fit(self, clf, feat_cols, filename, drop=True, ab_rate=0.7, random_state=2, early_stopping_rounds=100):
         path = 'submits/'+filename+'.csv'

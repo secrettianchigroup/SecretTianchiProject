@@ -54,6 +54,45 @@ def getMultiTradeRate(df, cols, gap = 7, target = 'is_trade', colSmoothing=None,
 
     return t_df[colSz], t_df[colSum], t_df[colRate]
 
+def generateTradeMeanHourByDate(tmp, cols, gap, exp_numerical, colSmoothing=None, verbose=True, glbSmoothing=10, glbMean0=0.5):
+    add_count = False
+
+    total_days = 8
+
+    exp = "mean_hour_"
+
+    #此处应该处理按天为梯度的数据
+    for k in cols:
+        exp_k = exp+k+'_'+str(gap)
+        
+        alpha, beta = 0, 0
+        if colSmoothing and k in colSmoothing:
+            alpha = colSmoothing[k][0]
+            beta = colSmoothing[k][1]
+            if verbose:
+                print('activating smoothing: alpha %s, beta %s' % (alpha, beta))
+        
+        cal_df = tmp.copy()
+#         cal_df.loc[cal_df["is_trade"] == 0, "hour"] = -1
+        for day in range(0, 8):
+
+            cal_day = max(day - 1, 0)
+            set_day = day
+
+            
+            #start_d - day(不含day)用于计算，结果赋值到day上
+            days1 = np.logical_and(tmp.day.values <= cal_day, tmp.day.values > (cal_day - gap))
+            days1 = np.logical_and(cal_df.is_trade.values == 1, days1)
+            days2 = (tmp.day.values == set_day)
+            ret = calcTVTransform(cal_df[[k, 'hour']], k, 'hour', days1, days2)#, smoothing=glbSmoothing, mean0=glbMean0)
+            
+            # 内建平滑
+            tmp.loc[tmp.day.values == day, exp_k] = ret['exp'] 
+            #mean_h_features[exp_k] = 1
+            if verbose:
+                # print(" %s trade_rate cal_day %s set to day %s" % (k, ))
+                print('%s (%s -> %s) spawn cols by %s' % (exp_k, tmp[days1]["day"].unique(), set_day, k))
+
 
 def generateTradeRateByDate(tmp, cols, gap = 7, colSmoothing=None, verbose=True, glbSmoothing=10, glbMean0=0.5):
     add_count = False
