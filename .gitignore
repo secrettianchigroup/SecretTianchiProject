@@ -1,3 +1,26 @@
 round1_ijcai_18_result_demo_20180301.txt
 round1_ijcai_18_test_a_20180301.txt
 round1_ijcai_18_train_20180301.txt
+src/hph/.ipynb_checkpoints/
+src/hph/submits/
+*.pyc
+src/yuhua/.ipynb_checkpoints/simple_xgb_pure-checkpoint.ipynb
+src/yuhua/randomforest_res.csv
+round1_ijcai_18_test_b_20180418.txt
+yhdata.csv/yhdata.csv
+allFeature.csv/
+src/log/
+src/hph/xgbModelFinal
+src/hph/xgbModel1eval
+src/hph/allFeaturen1.csv
+src/yuhua/.ipynb_checkpoints/
+src/util/main_modify_val_modify_concat_add_lightgbm_add_day_eval_final_best.py
+src/util/BrandIDBayesSmooth.py
+src/util/ItemIDBayesSmooth.py
+src/util/shopIDBayesSmooth.py
+src/util/userIDBayesSmooth.py
+round2_train.txt
+round2_ijcai_18_test_a_20180425.zip
+round2_ijcai_18_test_a_20180425.txt
+[update] round2_ijcai_18_train_20180425.7z
+src/result/20180422_lgb_local_.csv
